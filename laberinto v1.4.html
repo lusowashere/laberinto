@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<!--
+		v.1.0 - Iniciado proyecto
+        v.1.1 - Como la recursividad no funciona, se prueba con vectores que almacenen la información.
+		v.1.2 - La creación de laberintos funciona. Se empieza con la posibilidad de mover al personaje
+        v.1.3 - Mejoras estéticas (bordes del laberinto y flecha de personaje)
+        v.1.4 - Mover con el teclado
+	-->	
+	</head>
+	<body>
+		<style>
+			.cuadro{
+			width: 40px;
+			height: 40px;
+			text-align: center;
+			font-size: 18px;
+			} 
+
+			.cuadroSmall{
+				width: 5px;
+				height: 5px;
+			}
+
+			
+
+			.botonFlecha{
+				background-color:#BDBDBD;
+				height: 100px;
+				min-height: 100px;
+				width: 100px;
+				min-width: 100px;
+				border-radius: 100%;
+				cursor:pointer;
+				text-align: center;
+				line-height: 100px;
+				touch-action:none;
+				font-size: 30px;
+				border: 1px solid black;
+				margin: 0%;
+				padding: 0%;
+
+				box-shadow: 
+				/* Sombras externa */
+				inset 0 10px 15px rgba(255,255,255,.35), inset 0 -10px 15px rgba(0,0,0,.05), inset 10px 0 15px rgba(0,0,0,.05), inset -10px 0 15px rgba(0,0,0,.05),
+				/* Sombra interna */
+				0 5px 20px rgba(0,0,0,.1);
+			}
+			/* Al presionar */
+			.botonFlecha:active {
+			box-shadow: inset 0 5px 30px rgba(0,0,0,.2); /* Sombra interior */
+			background-size: 55%; /* Cambiamos el tamaño de la imagen */
+			}
+
+			.cuadroBoton{
+				height: 100px;
+				width: 100px;
+				margin: 0%;
+				padding: 0%;
+			}
+
+		</style>
+		<h1><CENTER>
+            <label onclick="crearTabla()"> LABERINTO</label>
+            </CENTER>
+		</h1>
+		<CENTER>
+			
+			<title>Laberinto</title>
+			<p id="lugarParaTabla"><button id="botonCrearLaberinto" onclick="crearLaberinto()">Crear Laberinto</button></p>
+            <p id="lugarParaPantalla"></p>
+            
+			<table id="lugarParaBotonesDeJugar" hidden style="touch-action:none">
+				<tr ><td class="cuadroBoton"></td><td class="cuadroBoton"><div class="botonFlecha" onclick="moverPosicionActual(2)" >&#9650</div></td><td class="cuadroBoton"></td></tr>
+				<tr ><td class="cuadroBoton"><p class="botonFlecha" onclick="moverPosicionActual(3)">&#9664</p></td class="cuadroBoton"><td></td><td class="cuadroBoton"><p class="botonFlecha" onclick="moverPosicionActual(1)">&#9654</p></td></tr>
+				<tr ><td class="cuadroBoton"></td><td class="cuadroBoton"><p class="botonFlecha" onclick="moverPosicionActual(0)">&#9660</p></td><td class="cuadroBoton"></td></tr>
+			</table>
+			
+			
+		</CENTER>
+		
+		
+
+<!--////////comienza el script/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+
+
+
+		<script>
+			//0 - vacío
+			//1 - pared
+			//3 - borde
+			//4 - inicio de laberinto
+			//5 - salida de laberinto
+			//6 - exterior
+			
+			var alturaVector;
+			
+
+			var salida=[0,0];
+			var puntoActual=[0,0];
+			var inicioDeLaberinto=[0,0]
+
+			var maximoIntento=0;
+
+			var direcciones=[[1,0],[0,1],[-1,0],[0,-1]];
+			var adyacentes=[[[1,1],[1,-1],[2,1],[2,0],[2,-1]],[[1,1],[-1,1],[1,2],[0,2],[-1,2]],[[-1,1],[-1,-1],[-2,1],[-2,0],[-2,-1]],[[1,-1],[-1,-1],[1,-2],[0,-2],[-1,-2]]];
+			
+			var partidaAcabada=false;
+
+			var matriz=new Array(30);
+			for(i=0;i<30;i++){
+				matriz[i]=new Array(30);
+			}
+
+			var vectorPosiciones=new Array(450);
+			for(a=0;a<450;a++){
+				vectorPosiciones[a]=new Array(2);
+			}
+
+		
+
+			//console.log("creando vectorDirecciones");
+			var vectorDirecciones=new Array(450);
+			var auxOrdenar;
+			var posAleatoria;
+			for(b=0;b<450;b++){
+				vectorDirecciones[b]=[0,1,2,3];
+				//aprovecho y lo ordeno aleatoriamente
+				for(c=0;c<4;c++){
+					posAleatoria=Math.floor(4*Math.random());
+					auxOrdenar=vectorDirecciones[b][posAleatoria];
+					vectorDirecciones[b][posAleatoria]=vectorDirecciones[b][c];
+					vectorDirecciones[b][c]=auxOrdenar;
+				}
+			}
+
+			//console.log("creando vectorIntentoDireccion");
+			var vectorIntentoDireccion=new Array(450);
+			for(d=0;d<450;d++){
+				vectorIntentoDireccion[d]=0;
+			}
+
+			//crearLaberinto();
+
+			var matrizPantalla=new Array(9);
+			for(e=0;e<9;e++){
+				matrizPantalla[e]=new Array(9);
+			}
+
+
+           // 
+
+
+
+			function crearLaberinto(){
+
+				//document.getElementById("lugarParaTabla").innerHTML="Creando tabla. Por favor espere";
+
+                document.onkeydown=botonPulsado;
+
+				//relleno la matriz de unos
+				for(i=0;i<30;i++){
+					for(j=0;j<30;j++){
+						matriz[i][j]=1;
+					}
+				}
+
+				//los bordes igual a 3
+				for(x=0;x<30;x++){
+					matriz[0][x]=3;
+					matriz[29][x]=3;
+					matriz[x][0]=3;
+					matriz[x][29]=3;
+				}
+
+				//selecciono punto final(salida del laberinto){
+				var lado=Math.floor(4*Math.random());
+				var punto=1+Math.floor(28*Math.random());
+				
+				var direccion;
+
+				switch(lado){
+					case 0:
+						salida=[0,punto];
+						//puntoActual=[1,punto];
+						direccion=0;
+					break;
+					case 1:
+						salida=[29,punto];
+						//puntoActual=[28,punto];
+						direccion=2;
+					break;
+					case 2:
+						salida=[punto,0];
+						//puntoActual=[punto,1];
+						direccion=1;
+						break;
+					case 3:
+						salida=[punto,29];
+						//puntoActual=[punto,28];
+						direccion=3;
+						break;
+					default:
+						console.log("punto default, lado:"+lado);
+						salida=[0,5];
+						direccion=0;
+						//puntoActual=[1,5];
+						break;
+				}
+
+				console.log("Salida:"+salida);
+				//console.log("PuntoActual:"+puntoActual);
+				matriz[salida[0]][salida[1]]=5;
+				//matriz[puntoActual[0]][puntoActual[1]]=0;
+				puntoActual[0]=salida[0];
+				puntoActual[1]=salida[1];
+
+				vectorPosiciones[0][0]=salida[0];
+				vectorPosiciones[0][1]=salida[1];
+
+				//vectorIntentoDireccion[0]=[direccion];
+				vectorDirecciones[0]=[direccion,direccion,direccion,direccion];
+
+				continuarLaberinto(0);
+
+				console.log(matriz);
+
+				matriz[inicioDeLaberinto[0]][inicioDeLaberinto[1]]=4;
+
+				document.getElementById("botonCrearLaberinto").hidden="true";
+
+				puntoActual=[inicioDeLaberinto[0],inicioDeLaberinto[1]];
+
+				//dibujarLaberintoEntero();
+				//debugger;
+
+				crearPantalla();
+				calcularMatrizPantalla();
+				dibujarPantalla(false);
+
+				document.getElementById("lugarParaBotonesDeJugar").hidden=false;
+
+			}
+
+			function moverPosicionActual(direccion){
+				//debugger;
+				var posicionAmover;
+
+
+				if(direccion<=3 && !partidaAcabada){
+					posicionAmover=sumarVectores(puntoActual,direcciones[direccion]);
+					girarPersonaje(direccion);//se gira aunque no se vaya a mover
+					if(getValorMatriz(posicionAmover)!=1 && getValorMatriz(posicionAmover)!=3){
+						puntoActual=posicionAmover;
+						if(getValorMatriz(posicionAmover)==5){
+							alert("Enhorabuena! Escapaste del laberinto! \n ¡Libertad!");
+							dibujarLaberintoEntero();
+							partidaAcabada=true;
+						}
+					}
+					//puntoActual=sumarVectores(puntoActual,direcciones[direccion]);
+					dibujarPantalla(true);
+				}else{
+					console.log("no se puede mover en esa dirección o ya se ha acabado la partida")
+				}
+			}
+
+			function girarPersonaje(direccion){
+			
+				document.getElementById("pantalla4-4").style.transform="rotate("+(-90*direccion)+"deg)";
+			}
+
+			function crearPantalla(){//crea una tabla que será la pantalla y que será la que irá cambiando de colores
+				var html="<table style=\"border-spacing:0px\">";
+				for(i=0;i<9;i++){
+					html+="<tr>";
+					for(j=0;j<9;j++){
+						html+="<td class=\"cuadro\" id=\"pantalla"+i+"-"+j+"\" style=\"background-color:#000000\"></td>";
+					}
+					html+="</tr>";
+				}
+				html+="</table>";
+				document.getElementById("lugarParaPantalla").innerHTML=html;
+			}
+
+			function calcularMatrizPantalla(){//calcula los valores de la pantalla que se mostrará a partir de la posición actual
+				var xPuntoActual=puntoActual[0];
+				var yPuntoActual=puntoActual[1];
+				
+				var xEstudiada,yEstudiada;
+				var filaCorrecta=true;
+
+				var valorEncontrado;//auxiliar para debug
+
+				//debugger;
+
+				for(x=0;x<9;x++){
+					xEstudiada=xPuntoActual+x-4;
+					if(xEstudiada<0 || xEstudiada>=30){
+						filaCorrecta=false;
+					}else{filaCorrecta=true;}
+					for(y=0;y<9;y++){
+						yEstudiada=yPuntoActual+y-4;
+						//console.log("calculando elemento de pantalla ["+xEstudiada+","+yEstudiada+"]");
+						if(!filaCorrecta || yEstudiada<0 || yEstudiada>=30){
+							matrizPantalla[x][y]=6;
+						}else{
+							valorEncontrado=matriz[xEstudiada][yEstudiada];
+							matrizPantalla[x][y]=valorEncontrado;
+						}
+						//dibujarPantalla();//temporal
+						//debugger;						
+					}
+				}
+			}
+
+			function dibujarPantalla(calcular)//actualiza la pantalla con los valores de la matrizPantalla
+			{
+				
+				var color;
+				
+				if(calcular){
+					calcularMatrizPantalla();
+					//debugger;
+				}
+
+				for(i=0;i<9;i++){
+					for(j=0;j<9;j++)
+					{
+						//debugger;
+						switch(matrizPantalla[i][j])
+						{
+							case 0:
+								color="#FFFFFF";
+								break;
+							case 1:
+								color="#000000";
+								break;
+							case 3:
+								//html+="#2E9AFE";
+								color="#000000";
+								break;
+							case 5:
+								color="#2EFE2E";
+								break;
+							case 6:
+								color="#2EFE2E";
+								break;
+							default:
+								color="#FF0000";
+								break;
+						}
+						document.getElementById("pantalla"+i+"-"+j).style.backgroundColor=color;
+					}
+				}
+
+				document.getElementById("pantalla4-4").innerHTML="&#9924";
+				
+			}
+
+			
+			function continuarLaberinto(intento){//comprueba si puede continuar el laberinto en la posición indicada
+				//var pNueva=[puntoActual[0]+direcciones[direccion][0],puntoActual[1]+direcciones[direccion][1]];
+				if(intento!=-1){
+					//debugger;
+
+					if(intento>maximoIntento){
+						maximoIntento=intento;
+						inicioDeLaberinto=[vectorPosiciones[intento][0],vectorPosiciones[intento][1]];
+						//console.log("inicio del laberinto: "+inicioDeLaberinto);
+					}
+
+					if(vectorIntentoDireccion[intento]<4){
+						var direccion=vectorDirecciones[intento][vectorIntentoDireccion[intento]];
+						var pNueva=sumarVectores(vectorPosiciones[intento],direcciones[direccion]);
+						//console.log("posición evaluada: "+pNueva+ " - Intento: "+intento);
+						var pEvaluada=[0,0];
+
+						var nuevasDirecciones=[0,1,2,3];
+
+						var sePuedeSeguir=true;
+
+						if(getValorMatriz(pNueva)!=1){
+							sePuedeSeguir=false;
+						}else{
+							for(i=0;i<5;i++){
+								pEvaluada=sumarVectores(vectorPosiciones[intento],adyacentes[direccion][i]);
+								//console.log("---puntoAdyacenteEvaluado: "+pEvaluada);
+								if(getValorMatriz(pEvaluada)==0){
+									sePuedeSeguir=false;
+								}
+							}
+						}
+
+						if(sePuedeSeguir){
+							//console.log("-se puede seguir a la posición "+pNueva);
+							setValorMatriz(pNueva,0);
+							puntoActual=[pNueva[0],pNueva[1]];
+							/*var aux;
+							var posicIntercamb;
+
+							//ordeno aleatoriamente el vector nuevas direcciones
+							for(j=0;j<4;j++){
+								posicIntercamb=Math.floor(4*Math.random());
+								aux=nuevasDirecciones[j];
+								nuevasDirecciones[j]=nuevasDirecciones[posicIntercamb];
+								nuevasDirecciones[posicIntercamb]=aux;
+							}*/
+
+							vectorPosiciones[intento+1]=[pNueva[0],pNueva[1]];
+							continuarLaberinto(intento+1);
+
+						}else{
+							//console.log("-no se puede seguir a la posición " + pNueva);
+							vectorIntentoDireccion[intento]+=1;
+							if(vectorIntentoDireccion[intento]<4){
+								continuarLaberinto(intento);
+							}else{
+							//	console.log("se baja a la posición "+(intento-1));
+								vectorIntentoDireccion[intento]=0;
+								vectorIntentoDireccion[intento-1]+=1;
+								continuarLaberinto(intento-1);
+							}
+						}						
+					}else{
+						//console.log("se baja a la posición "+(intento-1));
+						vectorIntentoDireccion[intento]=0;
+						vectorIntentoDireccion[intento-1]+=1;
+						continuarLaberinto(intento-1);
+					}
+				}
+
+			}
+
+			function dibujarLaberintoEntero()//temporal para ver si va bien
+			{
+				//console.log("aaa");
+				var html;
+				html="<table style=\"border-spacing:0px\">";
+				for(i=0;i<30;i++){
+					html=html + "<tr>";
+					for(j=0;j<30;j++){
+						html+="<td class=\"cuadroSmall\" style=\"background-color:";
+						//console.log("casilla["+i+"]["+j+"] - Valor:"+matriz[i][j]);
+						switch(matriz[i][j]){
+							case 0:
+								html+="#FFFFFF";
+								break;
+							case 1:
+								html+="#000000";
+								break;
+							case 3:
+								//html+="#2E9AFE";
+								html+="#000000";
+								break;
+							case 4:
+								html+="#FFFF00";
+								break;
+							case 5:
+								html+="#82FA58";
+								break;
+							default:
+								html+="#FFFFFF";
+								break;
+						}
+
+						html+="\"></td>";
+
+
+					}
+					html=html+"</tr>";
+				}
+
+				document.getElementById("lugarParaTabla").innerHTML=html;
+
+				//debugger;
+
+			}
+			
+
+			function getValorMatriz(posicion)//devuelve el valor de la matriz para el vector de la posición determinada
+			{
+				//debugger;
+				return matriz[posicion[0]][posicion[1]];
+			}
+
+			function setValorMatriz(posicion,valor)//cambia el valor de la matriz en la posición dada
+			{
+				matriz[posicion[0]][posicion[1]]=valor;
+			}
+
+			//funciones auxiliares
+			/////////////////////////////////////////////////////////////////////////////////
+
+			function sumarVectores(v1,v2)//suma los elementos de una matriz
+			{
+				//debugger;
+				var vResultado=[0,0];
+				vResultado[0]=v1[0]+v2[0];
+				vResultado[1]=v1[1]+v2[1];
+				return vResultado;
+			}
+
+            function botonPulsado(e){
+                
+                e = e || window.event;//esto no sé lo que es, pero por si acaso
+
+                if(e.keyCode>=37 && e.keyCode<=40){
+                
+                    var direccion=40-e.keyCode;
+                    moverPosicionActual(direccion);
+
+                }
+              
+            }
+
+
+		</script>
+
+	</body>
+</html>
